@@ -55,6 +55,27 @@ describe('RoomManager', () => {
     expect(room.players.get('Diaz')!.claimedAt).toBeGreaterThan(0);
   });
 
+  it('should detect if a player has claimed', () => {
+    const manager = new RoomManager();
+    const room = manager.createRoom(1);
+    manager.addPlayer(room.id, 'Diaz');
+    expect(manager.hasPlayerClaimed(room.id, 'Diaz')).toBe(false);
+    manager.startGame(room.id, 600);
+    manager.claimScore(room.id, 'Diaz', 0.87);
+    expect(manager.hasPlayerClaimed(room.id, 'Diaz')).toBe(true);
+  });
+
+  it('should reject claim after game has expired', () => {
+    const manager = new RoomManager();
+    const room = manager.createRoom(1);
+    manager.addPlayer(room.id, 'Diaz');
+    manager.startGame(room.id, -1);
+    // endsAt is in the past, so claim is after expiry
+    const result = manager.claimScore(room.id, 'Diaz', 0.87);
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('GAME_NOT_ACTIVE');
+  });
+
   it('should reject claim when game is not active', () => {
     const manager = new RoomManager();
     const room = manager.createRoom(1);

@@ -55,10 +55,15 @@ export class RoomManager {
     return true;
   }
 
+  hasPlayerClaimed(roomId: string, playerName: string): boolean {
+    return this.rooms.get(roomId)?.players.get(playerName)?.claimedAt !== null;
+  }
+
   claimScore(roomId: string, playerName: string, confidenceScore: number): ClaimResult {
     const room = this.rooms.get(roomId);
     if (!room) return { success: false, error: 'ROOM_NOT_FOUND' };
     if (room.status !== 'ACTIVE') return { success: false, error: 'GAME_NOT_ACTIVE' };
+    if (room.endsAt && Date.now() > room.endsAt) return { success: false, error: 'GAME_NOT_ACTIVE' };
     const player = room.players.get(playerName);
     if (!player) return { success: false, error: 'ROOM_NOT_FOUND' };
     if (player.claimedAt !== null) return { success: false, error: 'ALREADY_CLAIMED' };
