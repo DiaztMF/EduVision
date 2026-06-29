@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useYOLOInference } from '@/hooks/useYOLOInference';
 import { Button } from '@/components/ui/button';
 
 interface CameraScannerProps {
@@ -15,6 +16,7 @@ export default function CameraScanner({ onDetection, disabled }: CameraScannerPr
   const [cameraReady, setCameraReady] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState('');
+  const { isLoaded, loadingProgress, runInference } = useYOLOInference();
 
   useEffect(() => {
     let cancelled = false;
@@ -44,7 +46,7 @@ export default function CameraScanner({ onDetection, disabled }: CameraScannerPr
     };
   }, []);
 
-  const handleScan = useCallback(() => {
+  const handleScan = useCallback(async () => {
     if (!videoRef.current || !canvasRef.current || disabled) return;
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -52,12 +54,38 @@ export default function CameraScanner({ onDetection, disabled }: CameraScannerPr
     canvas.height = 320;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
     ctx.drawImage(video, 0, 0, 320, 320);
     setScanning(true);
-    // Emit a simulated confidence — real YOLO inference wired in Task 7
-    onDetection(0.85);
-    setTimeout(() => setScanning(false), 1500);
-  }, [onDetection, disabled]);
+
+    try {
+      const results = await runInference(canvas);
+      const plasticBottle = results.find(
+        r => r.className === 'plastic_bottle' && r.confidence >= 0.65
+      );
+      if (plasticBottle) {
+        onDetection(plasticBottle.confidence);
+      } else {
+        setError('No plastic bottle detected. Try again.');
+        setTimeout(() => setError(''), 3000);
+      }
+    } catch (err) {
+      setError('Inference failed. Please try again.');
+    } finally {
+      setScanning(false);
+    }
+  }, [onDetection, disabled, runInference]);
+
+  if (!isLoaded) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">Loading AI model ({loadingProgress}%)...</p>
+        <div className="mt-4 h-2 bg-muted rounded-full overflow-hidden max-w-xs mx-auto">
+          <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${loadingProgress}%` }} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
