@@ -1,27 +1,33 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useYOLOInference } from '@/hooks/useYOLOInference';
 import { Button } from '@/components/ui/button';
+import type { InferenceResult } from '@/lib/YOLOInferenceEngine';
 
 interface CameraScannerProps {
   onDetection: (confidence: number) => void;
   disabled: boolean;
+  isLoaded: boolean;
+  loadingProgress: number;
+  runInference: (canvas: HTMLCanvasElement) => Promise<InferenceResult[]>;
 }
 
-export default function CameraScanner({ onDetection, disabled }: CameraScannerProps) {
+export default function CameraScanner({ onDetection, disabled, isLoaded, loadingProgress, runInference }: CameraScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [cameraReady, setCameraReady] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState('');
-  const { isLoaded, loadingProgress, runInference } = useYOLOInference();
 
   useEffect(() => {
     let cancelled = false;
     async function startCamera() {
       try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          setError('Kamera tidak tersedia. Pastikan akses via HTTPS (ngrok) atau localhost.');
+          return;
+        }
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment', width: { ideal: 320 }, height: { ideal: 320 } },
           audio: false,
@@ -31,11 +37,9 @@ export default function CameraScanner({ onDetection, disabled }: CameraScannerPr
           return;
         }
         streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
         setCameraReady(true);
-      } catch {
+      } catch (err) {
+        console.error('Camera error:', err);
         setError('Camera access denied. Please allow camera permissions.');
       }
     }
@@ -46,6 +50,15 @@ export default function CameraScanner({ onDetection, disabled }: CameraScannerPr
     };
   }, []);
 
+  useEffect(() => {
+    if (isLoaded && cameraReady && streamRef.current && videoRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.onloadedmetadata = () => {
+        videoRef.current?.play().catch(e => console.error('Video play error:', e));
+      };
+    }
+  }, [isLoaded, cameraReady]);
+
   const handleScan = useCallback(async () => {
     if (!videoRef.current || !canvasRef.current || disabled) return;
     const video = videoRef.current;
@@ -55,7 +68,17 @@ export default function CameraScanner({ onDetection, disabled }: CameraScannerPr
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.drawImage(video, 0, 0, 320, 320);
+    // Hitung crop untuk mengambil kotak tengah (center square) dari video frame
+    // Ini mensimulasikan efek CSS `object-cover` agar AI melihat hal yang sama dengan user
+    const size = Math.min(video.videoWidth, video.videoHeight);
+    const startX = (video.videoWidth - size) / 2;
+    const startY = (video.videoHeight - size) / 2;
+
+    ctx.drawImage(
+      video,
+      startX, startY, size, size, // Koordinat crop dari source video
+      0, 0, 320, 320              // Koordinat tujuan di canvas
+    );
     setScanning(true);
 
     try {

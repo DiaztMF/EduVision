@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { useSocket } from '@/hooks/useSocket';
+import { useYOLOInference } from '@/hooks/useYOLOInference';
 import { EVENTS } from '@eduvision/shared-types';
 import CameraScanner from '@/components/CameraScanner';
 import Countdown from '@/components/Countdown';
@@ -17,6 +18,7 @@ export default function PlayRoomPage() {
   const roomId = params.roomId as string;
   const playerName = searchParams.get('name') ?? '';
   const { socket, isConnected } = useSocket(roomId);
+  const { isLoaded, loadingProgress, runInference } = useYOLOInference();
   const [gamePhase, setGamePhase] = useState<GamePhase>('waiting');
   const [endsAt, setEndsAt] = useState<number | null>(null);
   const [targetLabel, setTargetLabel] = useState('');
@@ -94,8 +96,22 @@ export default function PlayRoomPage() {
         </div>
 
         {gamePhase === 'waiting' && (
-          <div className="text-center py-16">
+          <div className="text-center py-16 space-y-6">
             <p className="text-lg text-muted-foreground">Waiting for the teacher to start the game...</p>
+            
+            <div className="w-full max-w-xs mx-auto border rounded-lg p-4 bg-muted/50">
+              {!isLoaded ? (
+                <>
+                  <p className="text-sm text-muted-foreground mb-2">Preloading AI model ({loadingProgress}%)...</p>
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <div className="h-full bg-primary transition-all" style={{ width: `${loadingProgress}%` }} />
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm font-semibold text-green-600 dark:text-green-400">✅ AI Model Ready for Game</p>
+              )}
+            </div>
+
             {!isConnected && <p className="text-sm text-destructive mt-2">Connecting to server...</p>}
           </div>
         )}
@@ -107,7 +123,13 @@ export default function PlayRoomPage() {
               Find and scan: <span className="font-semibold text-foreground">{targetLabel}</span>
             </p>
 
-            <CameraScanner onDetection={onDetection} disabled={hasClaimed} />
+            <CameraScanner 
+              onDetection={onDetection} 
+              disabled={hasClaimed} 
+              isLoaded={isLoaded}
+              loadingProgress={loadingProgress}
+              runInference={runInference}
+            />
 
             {hasClaimed && (
               <div className="rounded-lg border border-green-500 bg-green-50 dark:bg-green-950 p-4 text-center">
