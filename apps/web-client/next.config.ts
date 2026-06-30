@@ -2,6 +2,7 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  allowedDevOrigins: ['prude-durable-mammogram.ngrok-free.dev'],
   async headers() {
     return [
       {

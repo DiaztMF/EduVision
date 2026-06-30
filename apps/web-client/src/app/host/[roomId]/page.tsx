@@ -24,9 +24,11 @@ export default function HostRoomPage() {
   const [endsAt, setEndsAt] = useState<number | null>(null);
   const [durationSec, setDurationSec] = useState(600);
 
-  const joinUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/join/${roomId}`
-    : '';
+  const [joinUrl, setJoinUrl] = useState('');
+
+  useEffect(() => {
+    setJoinUrl(`${window.location.origin}/join/${roomId}`);
+  }, [roomId]);
 
   useEffect(() => {
     if (!socket.connected) socket.connect();

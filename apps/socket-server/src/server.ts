@@ -94,7 +94,16 @@ httpServer.on('upgrade', (req, socket, head) => {
   });
 
   proxyReq.on('upgrade', (_proxyRes, proxySocket, _proxyHead) => {
-    socket.write(_proxyHead);
+    // Write the full 101 Switching Protocols response before piping
+    socket.write(
+      `HTTP/1.1 101 Switching Protocols\r\n` +
+      Object.entries(_proxyRes.headers)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join('\r\n') +
+      '\r\n\r\n',
+    );
+    proxySocket.on('error', () => socket.destroy());
+    socket.on('error', () => proxySocket.destroy());
     socket.pipe(proxySocket);
     proxySocket.pipe(socket);
   });
