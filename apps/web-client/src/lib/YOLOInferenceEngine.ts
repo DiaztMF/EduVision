@@ -11,7 +11,7 @@ export class YOLOInferenceEngine {
   private readonly modelPath = '/models/best.onnx';
   private readonly targetDim = 320;
   private readonly labels = ['plastic_bottle'];
-  private readonly confThreshold = 0.65;
+  private readonly confThreshold = 0.15;
   private readonly iouThreshold = 0.45;
 
   async initEngine(): Promise<void> {

@@ -1,7 +1,7 @@
 import type { Room, LeaderboardEntry } from '@eduvision/shared-types';
 import modules from '../modules.json' with { type: 'json' };
 
-const CONFIDENCE_THRESHOLD = 0.65;
+const CONFIDENCE_THRESHOLD = 0.15;
 
 interface ClaimResult {
   success: boolean;

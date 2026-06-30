@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Flashlight, FlashlightOff, Camera } from 'lucide-react';
 import type { InferenceResult } from '@/lib/YOLOInferenceEngine';
 
 interface CameraScannerProps {
@@ -16,9 +17,15 @@ export default function CameraScanner({ onDetection, disabled, isLoaded, loading
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [cameraReady, setCameraReady] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState('');
+  const [showFallback, setShowFallback] = useState(false);
+  
+  // Flashlight state
+  const [flashlightOn, setFlashlightOn] = useState(false);
+  const [torchSupported, setTorchSupported] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -29,7 +36,11 @@ export default function CameraScanner({ onDetection, disabled, isLoaded, loading
           return;
         }
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment', width: { ideal: 320 }, height: { ideal: 320 } },
+          video: { 
+            facingMode: 'environment', 
+            width: { ideal: 1280 }, 
+            height: { ideal: 720 }
+          },
           audio: false,
         });
         if (cancelled) {
@@ -38,6 +49,14 @@ export default function CameraScanner({ onDetection, disabled, isLoaded, loading
         }
         streamRef.current = stream;
         setCameraReady(true);
+
+        // Check flashlight capability
+        const track = stream.getVideoTracks()[0];
+        const capabilities = track.getCapabilities && track.getCapabilities();
+        // @ts-ignore - TS doesn't always know about torch in capabilities
+        if (capabilities && capabilities.torch) {
+          setTorchSupported(true);
+        }
       } catch (err) {
         console.error('Camera error:', err);
         setError('Camera access denied. Please allow camera permissions.');
@@ -50,6 +69,16 @@ export default function CameraScanner({ onDetection, disabled, isLoaded, loading
     };
   }, []);
 
+  // 10-second timer to show fallback
+  useEffect(() => {
+    if (cameraReady && !disabled) {
+      const timer = setTimeout(() => {
+        setShowFallback(true);
+      }, 10000);
+      return () => clearTimeout(timer);
+    }
+  }, [cameraReady, disabled]);
+
   useEffect(() => {
     if (isLoaded && cameraReady && streamRef.current && videoRef.current) {
       videoRef.current.srcObject = streamRef.current;
@@ -59,32 +88,27 @@ export default function CameraScanner({ onDetection, disabled, isLoaded, loading
     }
   }, [isLoaded, cameraReady]);
 
-  const handleScan = useCallback(async () => {
-    if (!videoRef.current || !canvasRef.current || disabled) return;
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    canvas.width = 320;
-    canvas.height = 320;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+  const toggleFlashlight = useCallback(async () => {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (track) {
+      try {
+        const nextState = !flashlightOn;
+        await track.applyConstraints({
+          advanced: [{ torch: nextState } as any]
+        });
+        setFlashlightOn(nextState);
+      } catch (err) {
+        console.error('Failed to toggle flashlight', err);
+      }
+    }
+  }, [flashlightOn]);
 
-    // Hitung crop untuk mengambil kotak tengah (center square) dari video frame
-    // Ini mensimulasikan efek CSS `object-cover` agar AI melihat hal yang sama dengan user
-    const size = Math.min(video.videoWidth, video.videoHeight);
-    const startX = (video.videoWidth - size) / 2;
-    const startY = (video.videoHeight - size) / 2;
-
-    ctx.drawImage(
-      video,
-      startX, startY, size, size, // Koordinat crop dari source video
-      0, 0, 320, 320              // Koordinat tujuan di canvas
-    );
+  const executeInference = useCallback(async (canvas: HTMLCanvasElement) => {
     setScanning(true);
-
     try {
       const results = await runInference(canvas);
       const plasticBottle = results.find(
-        r => r.className === 'plastic_bottle' && r.confidence >= 0.65
+        r => r.className === 'plastic_bottle' && r.confidence >= 0.15
       );
       if (plasticBottle) {
         onDetection(plasticBottle.confidence);
@@ -97,7 +121,56 @@ export default function CameraScanner({ onDetection, disabled, isLoaded, loading
     } finally {
       setScanning(false);
     }
-  }, [onDetection, disabled, runInference]);
+  }, [onDetection, runInference]);
+
+  const handleScan = useCallback(async () => {
+    if (!videoRef.current || !canvasRef.current || disabled) return;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    canvas.width = 320;
+    canvas.height = 320;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const size = Math.min(video.videoWidth, video.videoHeight);
+    const startX = (video.videoWidth - size) / 2;
+    const startY = (video.videoHeight - size) / 2;
+
+    ctx.drawImage(
+      video,
+      startX, startY, size, size,
+      0, 0, 320, 320
+    );
+    
+    await executeInference(canvas);
+  }, [disabled, executeInference]);
+
+  const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !canvasRef.current || disabled) return;
+
+    const img = new Image();
+    img.onload = async () => {
+      const canvas = canvasRef.current!;
+      canvas.width = 320;
+      canvas.height = 320;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const size = Math.min(img.width, img.height);
+      const startX = (img.width - size) / 2;
+      const startY = (img.height - size) / 2;
+
+      ctx.drawImage(
+        img,
+        startX, startY, size, size,
+        0, 0, 320, 320
+      );
+      
+      await executeInference(canvas);
+    };
+    img.src = URL.createObjectURL(file);
+  }, [disabled, executeInference]);
 
   if (!isLoaded) {
     return (
@@ -121,6 +194,19 @@ export default function CameraScanner({ onDetection, disabled, isLoaded, loading
           className="absolute inset-0 w-full h-full object-cover"
         />
         <canvas ref={canvasRef} className="hidden" />
+        
+        {/* Flashlight Button Overlay */}
+        {torchSupported && cameraReady && !disabled && (
+          <Button
+            size="icon"
+            variant="secondary"
+            className="absolute top-2 right-2 rounded-full opacity-80 hover:opacity-100"
+            onClick={toggleFlashlight}
+          >
+            {flashlightOn ? <FlashlightOff className="w-5 h-5" /> : <Flashlight className="w-5 h-5" />}
+          </Button>
+        )}
+
         {!cameraReady && !error && (
           <div className="absolute inset-0 flex items-center justify-center">
             <p className="text-muted-foreground">Starting camera...</p>
@@ -136,8 +222,35 @@ export default function CameraScanner({ onDetection, disabled, isLoaded, loading
         className="w-full"
         size="lg"
       >
-        {scanning ? 'Scanning...' : disabled ? 'Already Scanned' : 'Scan Object'}
+        {scanning ? 'Scanning...' : disabled ? 'Already Scanned' : 'Scan Live Camera'}
       </Button>
+
+      {/* Fallback Static Photo Upload */}
+      {showFallback && !disabled && (
+        <div className="pt-4 border-t border-border space-y-2">
+          <p className="text-xs text-muted-foreground text-center">
+            Kamera lambat/buram? Gunakan foto statis:
+          </p>
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+          />
+          <Button
+            variant="outline"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={scanning || disabled}
+            className="w-full"
+          >
+            <Camera className="w-4 h-4 mr-2" />
+            Ambil Foto & Kirim
+          </Button>
+        </div>
+      )}
+
       {disabled && (
         <p className="text-xs text-muted-foreground text-center">
           You have already claimed a bottle. Great job!
