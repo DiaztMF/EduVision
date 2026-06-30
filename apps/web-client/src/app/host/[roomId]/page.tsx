@@ -19,7 +19,7 @@ export default function HostRoomPage() {
   const roomId = params.roomId as string;
   const { socket, isConnected } = useSocket(roomId);
   const [phase, setPhase] = useState<Phase>('lobby');
-  const [players, setPlayers] = useState<Array<{ name: string; score: number; claimedAt: number | null }>>([]);
+  const [players, setPlayers] = useState<Array<{ name: string; score: number; claimedAt: number | null; aiProgress?: number }>>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [endsAt, setEndsAt] = useState<number | null>(null);
   const [durationSec, setDurationSec] = useState(600);
@@ -35,7 +35,7 @@ export default function HostRoomPage() {
   }, [socket]);
 
   useEffect(() => {
-    const onPlayersUpdate = (data: { players: Array<{ name: string; score: number; claimedAt: number | null }> }) => {
+    const onPlayersUpdate = (data: { players: Array<{ name: string; score: number; claimedAt: number | null; aiProgress?: number }> }) => {
       setPlayers(data.players);
     };
     const onGameStarted = (data: { endsAt: number; targetLabel: string }) => {

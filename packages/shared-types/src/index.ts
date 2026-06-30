@@ -5,6 +5,7 @@ export interface Player {
   score: number;
   claimedAt: number | null;
   connected: boolean;
+  aiProgress: number; // 0-100 progress of AI model loading
 }
 
 export interface GameModule {
@@ -45,7 +46,13 @@ export interface JoinRoomPayload {
 }
 
 export interface RoomPlayersUpdatePayload {
-  players: Array<{ name: string; score: number; claimedAt: number | null }>;
+  players: Array<{ name: string; score: number; claimedAt: number | null; aiProgress: number }>;
+}
+
+export interface PlayerProgressPayload {
+  roomId: string;
+  playerName: string;
+  progress: number;
 }
 
 export interface StartGameSessionPayload {
@@ -86,6 +93,7 @@ export const EVENTS = {
   HOST_JOIN: 'host_join',
   JOIN_ROOM: 'join_room',
   ROOM_PLAYERS_UPDATE: 'room_players_update',
+  PLAYER_PROGRESS_UPDATE: 'player_progress_update',
   START_GAME_SESSION: 'start_game_session',
   GAME_STARTED: 'game_started',
   CLAIM_SCORE: 'claim_score',

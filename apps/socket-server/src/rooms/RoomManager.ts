@@ -39,7 +39,15 @@ export class RoomManager {
       score: 0,
       claimedAt: null,
       connected: true,
+      aiProgress: 0,
     });
+    return true;
+  }
+
+  updatePlayerProgress(roomId: string, playerName: string, progress: number): boolean {
+    const player = this.rooms.get(roomId)?.players.get(playerName);
+    if (!player) return false;
+    player.aiProgress = progress;
     return true;
   }
 
@@ -86,11 +94,11 @@ export class RoomManager {
       });
   }
 
-  getRoomPlayers(roomId: string): Array<{ name: string; score: number; claimedAt: number | null }> {
+  getRoomPlayers(roomId: string): Array<{ name: string; score: number; claimedAt: number | null; aiProgress: number }> {
     const room = this.rooms.get(roomId);
     if (!room) return [];
     return Array.from(room.players.values()).map(p => ({
-      name: p.name, score: p.score, claimedAt: p.claimedAt,
+      name: p.name, score: p.score, claimedAt: p.claimedAt, aiProgress: p.aiProgress,
     }));
   }
 

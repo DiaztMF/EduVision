@@ -9,6 +9,7 @@ import { registerJoinHandler } from './handlers/joinHandler.js';
 import { registerHostHandler } from './handlers/hostHandler.js';
 import { registerStartGameHandler } from './handlers/startGameHandler.js';
 import { registerClaimScoreHandler } from './handlers/claimScoreHandler.js';
+import { registerPlayerProgressHandler } from './handlers/playerProgressHandler.js';
 
 const PORT = parseInt(process.env.PORT ?? '3001', 10);
 const NEXT_DEV_PORT = parseInt(process.env.NEXT_DEV_PORT ?? '3000', 10);
@@ -71,6 +72,7 @@ io.on('connection', (socket) => {
   registerJoinHandler(io, socket, roomManager);
   registerStartGameHandler(io, socket, roomManager);
   registerClaimScoreHandler(io, socket, roomManager);
+  registerPlayerProgressHandler(io, socket, roomManager);
 
   socket.on('disconnect', () => {
     const { playerName, roomId } = socket.data;

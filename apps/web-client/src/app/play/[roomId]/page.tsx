@@ -39,6 +39,16 @@ export default function PlayRoomPage() {
   }, [socket]);
 
   useEffect(() => {
+    if (isConnected && playerName && roomId) {
+      socket.emit(EVENTS.PLAYER_PROGRESS_UPDATE, {
+        roomId,
+        playerName,
+        progress: loadingProgress,
+      });
+    }
+  }, [loadingProgress, isConnected, socket, roomId, playerName]);
+
+  useEffect(() => {
     const onGameStarted = (data: { endsAt: number; targetLabel: string }) => {
       setGamePhase('active');
       setEndsAt(data.endsAt);
