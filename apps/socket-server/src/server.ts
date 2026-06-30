@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
+import http from 'http';
 import { Server } from 'socket.io';
 import { EVENTS } from '@eduvision/shared-types';
 import { RoomManager } from './rooms/RoomManager.js';
@@ -10,11 +11,39 @@ import { registerStartGameHandler } from './handlers/startGameHandler.js';
 import { registerClaimScoreHandler } from './handlers/claimScoreHandler.js';
 
 const PORT = parseInt(process.env.PORT ?? '3001', 10);
+const NEXT_DEV_PORT = parseInt(process.env.NEXT_DEV_PORT ?? '3000', 10);
+
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 const roomManager = new RoomManager();
+
+app.use((req, res, next) => {
+  if (req.path.startsWith('/socket.io') || req.path.startsWith('/api/')) {
+    return next();
+  }
+
+  const proxyReq = http.request(
+    {
+      hostname: 'localhost',
+      port: NEXT_DEV_PORT,
+      path: req.url,
+      method: req.method,
+      headers: { ...req.headers },
+    },
+    (proxyRes) => {
+      res.writeHead(proxyRes.statusCode!, proxyRes.headers);
+      proxyRes.pipe(res);
+    },
+  );
+
+  proxyReq.on('error', () => {
+    res.status(502).send('Bad Gateway');
+  });
+
+  req.pipe(proxyReq);
+});
 
 app.post('/api/v1/rooms/create', (req, res) => {
   const { moduleId } = req.body;
@@ -53,6 +82,28 @@ io.on('connection', (socket) => {
   });
 });
 
+httpServer.on('upgrade', (req, socket, head) => {
+  if (req.url?.startsWith('/socket.io')) return;
+
+  const proxyReq = http.request({
+    hostname: 'localhost',
+    port: NEXT_DEV_PORT,
+    path: req.url || '/',
+    method: 'GET',
+    headers: { ...req.headers },
+  });
+
+  proxyReq.on('upgrade', (_proxyRes, proxySocket, _proxyHead) => {
+    socket.write(_proxyHead);
+    socket.pipe(proxySocket);
+    proxySocket.pipe(socket);
+  });
+
+  proxyReq.on('error', () => socket.destroy());
+  proxyReq.end();
+});
+
 httpServer.listen(PORT, () => {
   console.log(`Socket server listening on port ${PORT}`);
+  console.log(`Proxying web requests to http://localhost:${NEXT_DEV_PORT}`);
 });
