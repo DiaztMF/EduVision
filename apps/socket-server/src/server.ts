@@ -20,9 +20,19 @@ app.use(express.json());
 
 const roomManager = new RoomManager();
 
+app.get('/', (req, res) => {
+  res.status(200).json({ status: 'ok', service: 'EduVision Socket Server', environment: process.env.NODE_ENV });
+});
+
 app.use((req, res, next) => {
   if (req.path.startsWith('/socket.io') || req.path.startsWith('/api/')) {
     return next();
+  }
+
+  // Disable proxy in production
+  if (process.env.NODE_ENV === 'production') {
+    res.status(404).json({ error: 'Not Found', message: 'API routes only' });
+    return;
   }
 
   const proxyReq = http.request(
