@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: eduvision-socket-server
+    env: node
+    plan: free
+    region: ohio # Anda bisa mengubahnya ke singapore jika tersedia
+    rootDir: .
+    buildCommand: pnpm install && pnpm build --filter @eduvision/socket-server
+    startCommand: cd apps/socket-server && pnpm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
