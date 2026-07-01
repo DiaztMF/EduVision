@@ -1,0 +1,1 @@
+{"root":["./src/server.ts","./src/handlers/claimscorehandler.ts","./src/handlers/hosthandler.ts","./src/handlers/joinhandler.ts","./src/handlers/playerprogresshandler.ts","./src/handlers/startgamehandler.ts","./src/rooms/roommanager.ts"],"version":"5.9.3"}
