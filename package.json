@@ -4,7 +4,7 @@
   "scripts": {
     "dev:web": "pnpm --filter @eduvision/web-client dev",
     "dev:server": "pnpm --filter @eduvision/socket-server dev",
-    "build": "pnpm --filter @eduvision/shared-types build && pnpm --filter @eduvision/socket-server build && pnpm --filter @eduvision/web-client build",
+    "build": "pnpm -r build",
     "lint": "pnpm -r lint"
   },
   "engines": {

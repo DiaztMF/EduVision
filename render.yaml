@@ -5,7 +5,7 @@ services:
     plan: free
     region: ohio # Anda bisa mengubahnya ke singapore jika tersedia
     rootDir: .
-    buildCommand: pnpm install && pnpm build --filter @eduvision/socket-server
+    buildCommand: pnpm install && pnpm --filter @eduvision/socket-server build
     startCommand: cd apps/socket-server && pnpm start
     envVars:
       - key: NODE_ENV
