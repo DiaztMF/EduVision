@@ -8,6 +8,7 @@ import { EVENTS } from '@eduvision/shared-types';
 import CameraScanner from '@/components/CameraScanner';
 import Countdown from '@/components/Countdown';
 import { Button } from '@/components/ui/button';
+import { CheckCircle2 } from 'lucide-react';
 
 type GamePhase = 'waiting' | 'active' | 'ended';
 
@@ -118,7 +119,10 @@ export default function PlayRoomPage() {
                   </div>
                 </>
               ) : (
-                <p className="text-sm font-semibold text-green-600 dark:text-green-400">✅ AI Model Ready for Game</p>
+                <p className="flex items-center justify-center gap-1.5 text-sm font-semibold text-green-600 dark:text-green-400">
+                  <CheckCircle2 className="w-4 h-4" />
+                  AI Model Ready for Game
+                </p>
               )}
             </div>
 

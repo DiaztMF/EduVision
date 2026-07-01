@@ -1,3 +1,5 @@
+import { CheckCircle2, Loader2 } from 'lucide-react';
+
 interface LobbyProps {
   players: Array<{ name: string; score: number; claimedAt: number | null; aiProgress?: number }>;
 }
@@ -15,10 +17,14 @@ export default function Lobby({ players }: LobbyProps) {
             <div className="flex items-center justify-between">
               <span className="font-medium">{p.name}</span>
               {(p.aiProgress ?? 0) >= 100 ? (
-                <span className="text-sm font-semibold text-green-600 dark:text-green-400">✅ Ready</span>
+                <span className="flex items-center gap-1.5 text-sm font-semibold text-green-600 dark:text-green-400">
+                  <CheckCircle2 className="w-4 h-4" />
+                  Ready
+                </span>
               ) : (
-                <span className="text-sm text-muted-foreground animate-pulse">
-                  ⏳ Loading AI ({p.aiProgress ?? 0}%)
+                <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Loading AI ({p.aiProgress ?? 0}%)
                 </span>
               )}
             </div>

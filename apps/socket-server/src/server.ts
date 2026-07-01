@@ -62,6 +62,16 @@ app.post('/api/v1/rooms/create', (req, res) => {
   });
 });
 
+app.get('/api/v1/rooms/:roomId/verify', (req, res) => {
+  const { roomId } = req.params;
+  const room = roomManager.getRoom(roomId);
+  if (!room) {
+    res.status(404).json({ success: false, error: 'Room not found' });
+    return;
+  }
+  res.status(200).json({ success: true });
+});
+
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: { origin: '*', methods: ['GET', 'POST'] },

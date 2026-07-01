@@ -32,7 +32,7 @@ export default function CameraScanner({ onDetection, disabled, isLoaded, loading
     async function startCamera() {
       try {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          setError('Kamera tidak tersedia. Pastikan akses via HTTPS (ngrok) atau localhost.');
+          setError('Camera unavailable. Please ensure HTTPS or localhost access.');
           return;
         }
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -229,7 +229,7 @@ export default function CameraScanner({ onDetection, disabled, isLoaded, loading
       {showFallback && !disabled && (
         <div className="pt-4 border-t border-border space-y-2">
           <p className="text-xs text-muted-foreground text-center">
-            Kamera lambat/buram? Gunakan foto statis:
+            Camera laggy or blurry? Use a static photo:
           </p>
           <input
             type="file"
@@ -246,7 +246,7 @@ export default function CameraScanner({ onDetection, disabled, isLoaded, loading
             className="w-full"
           >
             <Camera className="w-4 h-4 mr-2" />
-            Ambil Foto & Kirim
+            Take Photo & Submit
           </Button>
         </div>
       )}
