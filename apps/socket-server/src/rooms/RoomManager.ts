@@ -1,4 +1,4 @@
-import type { Room, LeaderboardEntry } from '@eduvision/shared-types';
+import type { Room, LeaderboardEntry, Player } from '@eduvision/shared-types';
 import modules from '../modules.json' with { type: 'json' };
 
 const CONFIDENCE_THRESHOLD = 0.15;
@@ -85,7 +85,7 @@ export class RoomManager {
     const room = this.rooms.get(roomId);
     if (!room) return [];
     return Array.from(room.players.values())
-      .map(p => ({ playerName: p.name, score: p.score, claimedAt: p.claimedAt }))
+      .map((p: Player) => ({ playerName: p.name, score: p.score, claimedAt: p.claimedAt }))
       .sort((a, b) => {
         if (a.claimedAt && b.claimedAt) return a.claimedAt - b.claimedAt;
         if (a.claimedAt) return -1;
@@ -97,7 +97,7 @@ export class RoomManager {
   getRoomPlayers(roomId: string): Array<{ name: string; score: number; claimedAt: number | null; aiProgress: number }> {
     const room = this.rooms.get(roomId);
     if (!room) return [];
-    return Array.from(room.players.values()).map(p => ({
+    return Array.from(room.players.values()).map((p: Player) => ({
       name: p.name, score: p.score, claimedAt: p.claimedAt, aiProgress: p.aiProgress,
     }));
   }
